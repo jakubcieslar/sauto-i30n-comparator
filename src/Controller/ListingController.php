@@ -28,12 +28,29 @@ class ListingController extends AbstractController
             throw new NotFoundHttpException(sprintf('Listing %d not found', $externalId));
         }
 
-        $snapshots = $listing->getPriceSnapshots()->toArray();
+        $chain = [];
+        $cursor = $listing;
+        while ($cursor->getPredecessor() !== null) {
+            $chain[] = [
+                'listing' => $cursor->getPredecessor(),
+                'matchType' => $cursor->getPredecessorMatchType(),
+            ];
+            $cursor = $cursor->getPredecessor();
+        }
+
+        $snapshots = [];
+        foreach ([$listing, ...array_column($chain, 'listing')] as $node) {
+            foreach ($node->getPriceSnapshots() as $s) {
+                $snapshots[] = $s;
+            }
+        }
+        usort($snapshots, fn ($a, $b) => $a->getObservedAt() <=> $b->getObservedAt());
 
         return $this->render('listing/show.html.twig', [
             'listing' => $listing,
             'now' => $this->clock->now(),
             'daysListed' => $listing->getDaysListed($this->clock->now()),
+            'predecessorChain' => $chain,
             'priceHistory' => array_map(
                 fn ($s) => ['t' => $s->getObservedAt()->format('c'), 'price' => $s->getPrice()],
                 $snapshots,

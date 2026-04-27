@@ -187,3 +187,23 @@ table.listings th[data-sort-direction="desc"]::after { content: ' ▼'; opacity:
     color: var(--muted);
     font-size: 14px;
 }
+
+.predecessor-chain {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.predecessor-chain li {
+    padding: 10px 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--panel-2);
+    border-radius: 6px;
+}
+.predecessor-chain li .meta {
+    margin-top: 4px;
+    color: var(--muted);
+    font-size: 12px;
+}

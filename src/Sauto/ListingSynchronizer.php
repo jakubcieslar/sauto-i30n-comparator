@@ -7,6 +7,9 @@ namespace App\Sauto;
 use App\Entity\Listing;
 use App\Entity\PriceSnapshot;
 use App\Entity\ScrapeRun;
+use App\Matching\Fingerprint;
+use App\Matching\OwnerKey;
+use App\Matching\PredecessorMatcher;
 use App\Repository\ListingRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
@@ -19,6 +22,7 @@ class ListingSynchronizer
         private readonly ListingRepository $listings,
         private readonly EntityManagerInterface $em,
         private readonly ClockInterface $clock,
+        private readonly PredecessorMatcher $predecessorMatcher,
         private readonly LoggerInterface $logger = new NullLogger(),
     ) {
     }
@@ -48,6 +52,7 @@ class ListingSynchronizer
 
                 if ($existing === null) {
                     $listing = $this->createListing($result, $now);
+                    $this->linkPredecessor($listing, $now);
                     $this->em->persist($listing);
                     $added++;
 
@@ -150,6 +155,34 @@ class ListingSynchronizer
         }
 
         $listing->setRawData($r);
+        $listing->setFingerprint(Fingerprint::fromListing($listing)->toString());
+        $listing->setOwnerKey(OwnerKey::fromRawData($r)->toString());
+    }
+
+    private function linkPredecessor(Listing $listing, \DateTimeImmutable $now): void
+    {
+        $rawData = $listing->getRawData();
+        $ownerKey = OwnerKey::fromRawData($rawData);
+        $fingerprint = Fingerprint::fromListing($listing);
+
+        $match = $this->predecessorMatcher->findPredecessor(
+            $fingerprint,
+            $ownerKey,
+            $listing->getMileageKm(),
+            $now,
+        );
+
+        if ($match === null) {
+            return;
+        }
+
+        $listing->setPredecessor($match->predecessor, $match->type);
+        $this->logger->info('Predecessor linked', [
+            'external_id' => $listing->getExternalId(),
+            'predecessor_external_id' => $match->predecessor->getExternalId(),
+            'match_type' => $match->type->value,
+            'mismatched_fields' => $match->mismatchedFields,
+        ]);
     }
 
     private function parseDate(?string $s): ?\DateTimeImmutable

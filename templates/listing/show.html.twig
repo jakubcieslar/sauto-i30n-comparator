@@ -64,6 +64,30 @@
         </dl>
     </section>
 
+    {% if predecessorChain|length > 0 %}
+    <section class="chart-card">
+        <h2>Historie inzerátu</h2>
+        <ol class="predecessor-chain">
+            {% for step in predecessorChain %}
+                {% set p = step.listing %}
+                <li>
+                    <a href="{{ path('listing_show', { externalId: p.externalId }) }}">{{ p.title }}</a>
+                    {% if step.matchType %}
+                        <span class="badge">{{ step.matchType.label }}</span>
+                    {% endif %}
+                    <div class="meta">
+                        odstraněno {{ p.removedAt ? p.removedAt|date('d. m. Y') : '–' }}
+                        · poslední cena
+                        {% if p.currentPrice %}{{ p.currentPrice|number_format(0, ',', ' ') }} Kč
+                        {% else %}–{% endif %}
+                        · ID {{ p.externalId }}
+                    </div>
+                </li>
+            {% endfor %}
+        </ol>
+    </section>
+    {% endif %}
+
     <section class="chart-card">
         <h2>Vývoj ceny</h2>
         <div class="chart-canvas-wrap">
@@ -72,6 +96,10 @@
         {% if priceHistory|length < 2 %}
             <p style="color:var(--muted);font-size:13px;margin-top:8px;">
                 Zatím jeden záznam. Po dalším <code>app:scrape</code> uvidíš změny.
+            </p>
+        {% elseif predecessorChain|length > 0 %}
+            <p style="color:var(--muted);font-size:13px;margin-top:8px;">
+                Graf zahrnuje i body z předchozích inzerátů této položky.
             </p>
         {% endif %}
     </section>

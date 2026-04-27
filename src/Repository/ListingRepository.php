@@ -51,4 +51,19 @@ class ListingRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult();
     }
+
+    /**
+     * Recently-removed listings — candidate predecessors for a freshly-relisted car.
+     *
+     * @return Listing[]
+     */
+    public function findRemovedSince(\DateTimeImmutable $since): array
+    {
+        return $this->createQueryBuilder('l')
+            ->where('l.removedAt IS NOT NULL')
+            ->andWhere('l.removedAt >= :since')
+            ->setParameter('since', $since)
+            ->getQuery()
+            ->getResult();
+    }
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use App\Matching\MatchType;
 use App\Repository\ListingRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -12,6 +13,8 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Entity(repositoryClass: ListingRepository::class)]
 #[ORM\Table(name: 'listing')]
 #[ORM\Index(name: 'idx_listing_active', columns: ['removed_at'])]
+#[ORM\Index(name: 'idx_listing_fingerprint', columns: ['fingerprint'])]
+#[ORM\Index(name: 'idx_listing_owner_key', columns: ['owner_key'])]
 class Listing
 {
     #[ORM\Id]
@@ -81,6 +84,19 @@ class Listing
 
     #[ORM\Column(type: 'json')]
     private array $rawData = [];
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $fingerprint = null;
+
+    #[ORM\Column(length: 100, nullable: true)]
+    private ?string $ownerKey = null;
+
+    #[ORM\ManyToOne(targetEntity: self::class)]
+    #[ORM\JoinColumn(name: 'predecessor_id', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL')]
+    private ?self $predecessor = null;
+
+    #[ORM\Column(type: 'string', length: 30, nullable: true, enumType: MatchType::class)]
+    private ?MatchType $predecessorMatchType = null;
 
     /** @var Collection<int, PriceSnapshot> */
     #[ORM\OneToMany(targetEntity: PriceSnapshot::class, mappedBy: 'listing', cascade: ['persist', 'remove'], orphanRemoval: true)]
@@ -164,6 +180,21 @@ class Listing
         if (!$this->priceSnapshots->contains($snapshot)) {
             $this->priceSnapshots->add($snapshot);
         }
+    }
+
+    public function getFingerprint(): ?string { return $this->fingerprint; }
+    public function setFingerprint(?string $v): void { $this->fingerprint = $v; }
+
+    public function getOwnerKey(): ?string { return $this->ownerKey; }
+    public function setOwnerKey(?string $v): void { $this->ownerKey = $v; }
+
+    public function getPredecessor(): ?self { return $this->predecessor; }
+    public function getPredecessorMatchType(): ?MatchType { return $this->predecessorMatchType; }
+
+    public function setPredecessor(?self $predecessor, ?MatchType $matchType): void
+    {
+        $this->predecessor = $predecessor;
+        $this->predecessorMatchType = $predecessor === null ? null : $matchType;
     }
 
     public function isActive(): bool
