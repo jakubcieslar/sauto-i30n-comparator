@@ -1,0 +1,98 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Hyundai i30 N tracker{% endblock %}
+
+{% block body %}
+<header class="app-header">
+    <div class="container">
+        <h1>🚗 Hyundai i30 N — sledování inzerce</h1>
+        <div class="meta">
+            {% if lastRun %}
+                Poslední scrape: {{ lastRun.startedAt|date('d. m. Y H:i') }}
+            {% else %}
+                Zatím nic neproskenováno
+            {% endif %}
+        </div>
+    </div>
+</header>
+
+<main class="container">
+    <section class="stats">
+        <div class="stat"><div class="label">Aktivních inzerátů</div><div class="value">{{ stats.count }}</div></div>
+        <div class="stat"><div class="label">Min cena</div><div class="value">{{ stats.min ? (stats.min|number_format(0, ',', ' ') ~ ' Kč') : '–' }}</div></div>
+        <div class="stat"><div class="label">Medián</div><div class="value">{{ stats.median ? (stats.median|number_format(0, ',', ' ') ~ ' Kč') : '–' }}</div></div>
+        <div class="stat"><div class="label">Průměr</div><div class="value">{{ stats.average ? (stats.average|number_format(0, ',', ' ') ~ ' Kč') : '–' }}</div></div>
+        <div class="stat"><div class="label">Max cena</div><div class="value">{{ stats.max ? (stats.max|number_format(0, ',', ' ') ~ ' Kč') : '–' }}</div></div>
+    </section>
+
+    {% if active|length > 0 %}
+    <section class="chart-card">
+        <h2>Distribuce cen aktivních inzerátů</h2>
+        <div class="chart-canvas-wrap">
+            <canvas
+                {{ stimulus_controller('listings-chart', {
+                    labels: priceLabels,
+                    prices: priceData
+                }) }}
+            ></canvas>
+        </div>
+    </section>
+    {% endif %}
+
+    <section class="chart-card">
+        <h2>Aktivní inzeráty</h2>
+        <table class="listings">
+            <thead>
+                <tr>
+                    <th>Inzerát</th>
+                    <th class="num">Cena</th>
+                    <th class="num">Najeto</th>
+                    <th>Rok</th>
+                    <th>Místo</th>
+                    <th class="num">Inzerováno</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for l in active %}
+                <tr>
+                    <td>
+                        <a href="{{ path('listing_show', { externalId: l.externalId }) }}">{{ l.title }}</a>
+                        {% if l.additionalModelName %}
+                            <div style="color: var(--muted); font-size: 12px;">{{ l.additionalModelName }}</div>
+                        {% endif %}
+                    </td>
+                    <td class="num">
+                        {% if l.priceByAgreement %}
+                            <span class="badge">dohodou</span>
+                        {% elseif l.currentPrice %}
+                            {{ l.currentPrice|number_format(0, ',', ' ') }} Kč
+                        {% else %}
+                            –
+                        {% endif %}
+                    </td>
+                    <td class="num">
+                        {{ l.mileageKm ? (l.mileageKm|number_format(0, ',', ' ') ~ ' km') : '–' }}
+                    </td>
+                    <td>{{ l.manufacturingDate ? l.manufacturingDate|date('Y') : '–' }}</td>
+                    <td>{{ l.locationMunicipality ?: l.locationDistrict ?: '–' }}</td>
+                    <td class="num">
+                        {% set days = l.getDaysListed(now) %}
+                        {{ days is not null ? days ~ ' dní' : '–' }}
+                    </td>
+                    <td>
+                        {% if l.detailUrl %}
+                            <a href="{{ l.detailUrl }}" target="_blank" rel="noopener">sauto ↗</a>
+                        {% endif %}
+                    </td>
+                </tr>
+            {% else %}
+                <tr><td colspan="7" style="text-align:center;padding:24px;color:var(--muted);">
+                    Zatím žádná data. Spusť <code>task console -- app:scrape</code>.
+                </td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </section>
+</main>
+{% endblock %}

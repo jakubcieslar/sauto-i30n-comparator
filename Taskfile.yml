@@ -1,0 +1,161 @@
+version: '3'
+
+env:
+  UID:
+    sh: id -u
+  GID:
+    sh: id -g
+
+vars:
+  COMPOSE: docker compose
+  APP: docker compose exec app
+  APP_RUN: docker compose run --rm --no-deps app
+
+tasks:
+  default:
+    desc: List available tasks
+    cmds:
+      - task --list-all
+    silent: true
+
+  init:
+    desc: One-time bootstrap — build image, scaffold Symfony webapp, install QA tools, start stack
+    cmds:
+      - '{{.COMPOSE}} build app'
+      - |
+        if [ ! -f composer.json ]; then
+          {{.APP_RUN}} bash -lc '
+            set -e
+            composer create-project symfony/skeleton:7.4.* /tmp/skel --no-interaction --no-install
+            shopt -s dotglob
+            cp -a /tmp/skel/. /app/
+            rm -rf /tmp/skel
+            composer install --no-interaction
+            composer require webapp --no-interaction
+            composer require --dev phpstan/phpstan friendsofphp/php-cs-fixer rector/rector --no-interaction
+          '
+        else
+          echo "composer.json already exists — skipping scaffold"
+        fi
+      - task: up
+
+  build:
+    desc: (Re)build Docker images
+    cmds:
+      - '{{.COMPOSE}} build {{.CLI_ARGS}}'
+
+  up:
+    desc: Start the stack (detached, waits for healthy)
+    cmds:
+      - '{{.COMPOSE}} up -d --wait'
+
+  down:
+    desc: Stop the stack (keeps data)
+    cmds:
+      - '{{.COMPOSE}} down'
+
+  destroy:
+    desc: Stop the stack AND remove all volumes (DESTROYS DB DATA)
+    prompt: This will delete the database volume. Continue?
+    cmds:
+      - '{{.COMPOSE}} down -v'
+
+  restart:
+    desc: Restart all services
+    cmds:
+      - '{{.COMPOSE}} restart'
+
+  logs:
+    desc: Tail logs (use -- <service> to scope)
+    cmds:
+      - '{{.COMPOSE}} logs -f {{.CLI_ARGS}}'
+
+  ps:
+    desc: Show stack status
+    cmds:
+      - '{{.COMPOSE}} ps'
+
+  shell:
+    desc: Open a bash shell in the app container
+    cmds:
+      - '{{.APP}} bash'
+
+  shell:root:
+    desc: Open a root bash shell in the app container
+    cmds:
+      - '{{.COMPOSE}} exec -u root app bash'
+
+  composer:
+    desc: 'Run composer (e.g. task composer -- require foo/bar)'
+    cmds:
+      - '{{.APP}} composer {{.CLI_ARGS}}'
+
+  console:
+    desc: 'Run bin/console (e.g. task console -- cache:clear)'
+    cmds:
+      - '{{.APP}} bin/console {{.CLI_ARGS}}'
+
+  phpstan:
+    desc: Static analysis (PHPStan)
+    cmds:
+      - '{{.APP}} vendor/bin/phpstan analyse --memory-limit=512M {{.CLI_ARGS}}'
+
+  cs:fix:
+    desc: Apply PHP-CS-Fixer
+    cmds:
+      - '{{.APP}} vendor/bin/php-cs-fixer fix {{.CLI_ARGS}}'
+
+  cs:check:
+    desc: PHP-CS-Fixer dry-run
+    cmds:
+      - '{{.APP}} vendor/bin/php-cs-fixer fix --dry-run --diff {{.CLI_ARGS}}'
+
+  rector:
+    desc: Apply Rector refactorings
+    cmds:
+      - '{{.APP}} vendor/bin/rector process {{.CLI_ARGS}}'
+
+  rector:check:
+    desc: Rector dry-run
+    cmds:
+      - '{{.APP}} vendor/bin/rector process --dry-run {{.CLI_ARGS}}'
+
+  qa:
+    desc: Run all QA checks (phpstan + cs:check + rector:check)
+    cmds:
+      - task: phpstan
+      - task: cs:check
+      - task: rector:check
+
+  db:psql:
+    desc: Open psql in the database
+    cmds:
+      - '{{.COMPOSE}} exec db psql -U app -d app'
+
+  db:migrate:
+    desc: Run Doctrine migrations
+    cmds:
+      - '{{.APP}} bin/console doctrine:migrations:migrate --no-interaction'
+
+  db:diff:
+    desc: Generate a Doctrine migration diff
+    cmds:
+      - '{{.APP}} bin/console doctrine:migrations:diff'
+
+  db:reset:
+    desc: Drop, create, migrate the database
+    prompt: This will drop the database. Continue?
+    cmds:
+      - '{{.APP}} bin/console doctrine:database:drop --force --if-exists'
+      - '{{.APP}} bin/console doctrine:database:create'
+      - '{{.APP}} bin/console doctrine:migrations:migrate --no-interaction'
+
+  cache:clear:
+    desc: Clear Symfony cache
+    cmds:
+      - '{{.APP}} bin/console cache:clear'
+
+  scrape:
+    desc: Run sauto scrape (fetch listings + diff into DB)
+    cmds:
+      - '{{.APP}} bin/console app:scrape'

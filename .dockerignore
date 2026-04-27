@@ -1,0 +1,10 @@
+.git
+.idea
+.vscode
+var
+vendor
+node_modules
+.env.local
+.env.*.local
+.phpunit.result.cache
+.phpunit.cache

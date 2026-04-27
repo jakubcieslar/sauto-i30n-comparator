@@ -1,0 +1,79 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ listing.title }} — i30 N tracker{% endblock %}
+
+{% block body %}
+<header class="app-header">
+    <div class="container">
+        <h1>🚗 {{ listing.title }}</h1>
+    </div>
+</header>
+
+<main class="container">
+    <a href="{{ path('dashboard') }}" class="back-link">← zpět na přehled</a>
+
+    <section class="chart-card">
+        <dl class="detail-grid">
+            <div>
+                <dt>Aktuální cena</dt>
+                <dd>
+                    {% if listing.priceByAgreement %}<span class="badge">dohodou</span>
+                    {% elseif listing.currentPrice %}{{ listing.currentPrice|number_format(0, ',', ' ') }} Kč
+                    {% else %}–{% endif %}
+                </dd>
+
+                <dt>Najeto</dt>
+                <dd>{{ listing.mileageKm ? (listing.mileageKm|number_format(0, ',', ' ') ~ ' km') : '–' }}</dd>
+
+                <dt>Rok výroby</dt>
+                <dd>{{ listing.manufacturingDate ? listing.manufacturingDate|date('m / Y') : '–' }}</dd>
+
+                <dt>Palivo / převodovka</dt>
+                <dd>{{ listing.fuel ?: '–' }} / {{ listing.gearbox ?: '–' }}</dd>
+            </div>
+            <div>
+                <dt>Inzerováno na sauto</dt>
+                <dd>
+                    {% if listing.listedAt %}
+                        {{ listing.listedAt|date('d. m. Y') }}
+                        {% if daysListed is not null %} <span class="badge">{{ daysListed }} dní</span>{% endif %}
+                    {% else %}–{% endif %}
+                </dd>
+
+                <dt>Naposledy upraveno (sauto)</dt>
+                <dd>{{ listing.lastEditedAt ? listing.lastEditedAt|date('d. m. Y H:i') : '–' }}</dd>
+
+                <dt>Poprvé / naposledy viděno (tracker)</dt>
+                <dd>
+                    {{ listing.firstSeenAt|date('d. m. Y H:i') }} → {{ listing.lastSeenAt|date('d. m. Y H:i') }}
+                    {% if listing.removedAt %}
+                        <br><span class="badge removed">odstraněno {{ listing.removedAt|date('d. m. Y') }}</span>
+                    {% endif %}
+                </dd>
+
+                <dt>Lokalita</dt>
+                <dd>{{ listing.locationMunicipality ?: '–' }}{% if listing.locationDistrict %} ({{ listing.locationDistrict }}){% endif %}</dd>
+
+                <dt>Sauto detail</dt>
+                <dd>
+                    {% if listing.detailUrl %}
+                        <a href="{{ listing.detailUrl }}" target="_blank" rel="noopener">otevřít na sauto.cz ↗</a>
+                    {% else %}–{% endif %}
+                </dd>
+            </div>
+        </dl>
+    </section>
+
+    <section class="chart-card">
+        <h2>Vývoj ceny</h2>
+        <div class="chart-canvas-wrap">
+            <canvas {{ stimulus_controller('price-history-chart', { history: priceHistory }) }}></canvas>
+        </div>
+        {% if priceHistory|length < 2 %}
+            <p style="color:var(--muted);font-size:13px;margin-top:8px;">
+                Zatím jeden záznam. Po dalším <code>app:scrape</code> uvidíš změny.
+            </p>
+        {% endif %}
+    </section>
+</main>
+{% endblock %}
