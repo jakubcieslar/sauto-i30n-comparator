@@ -95,7 +95,7 @@
         </div>
         {% if priceHistory|length < 2 %}
             <p style="color:var(--muted);font-size:13px;margin-top:8px;">
-                Zatím jeden záznam. Po dalším <code>app:scrape</code> uvidíš změny.
+                Zatím jeden záznam. Po každém dalším <code>app:scrape</code> přibude další bod.
             </p>
         {% elseif predecessorChain|length > 0 %}
             <p style="color:var(--muted);font-size:13px;margin-top:8px;">

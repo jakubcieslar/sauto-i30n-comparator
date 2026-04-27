@@ -63,11 +63,11 @@ class ListingSynchronizer
                     $previousPrice = $existing->getCurrentPrice();
                     $this->updateListing($existing, $result, $now);
 
-                    if ($existing->getCurrentPrice() !== null
-                        && $existing->getCurrentPrice() !== $previousPrice
-                    ) {
+                    if ($existing->getCurrentPrice() !== null) {
                         $this->em->persist(new PriceSnapshot($existing, $existing->getCurrentPrice(), $now));
-                        $priceChanged++;
+                        if ($existing->getCurrentPrice() !== $previousPrice) {
+                            $priceChanged++;
+                        }
                     }
                 }
             }
