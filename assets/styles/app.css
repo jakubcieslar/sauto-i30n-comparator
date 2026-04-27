@@ -136,6 +136,19 @@ table.listings td.num {
     font-variant-numeric: tabular-nums;
 }
 
+table.listings th[data-sort-index] {
+    cursor: pointer;
+    user-select: none;
+}
+table.listings th[data-sort-index]:hover { color: var(--text); }
+table.listings th[data-sort-index]::after {
+    content: ' ⇅';
+    opacity: 0.35;
+    font-size: 11px;
+}
+table.listings th[data-sort-direction="asc"]::after  { content: ' ▲'; opacity: 1; color: var(--accent-2); }
+table.listings th[data-sort-direction="desc"]::after { content: ' ▼'; opacity: 1; color: var(--accent-2); }
+
 .badge {
     display: inline-block;
     padding: 2px 8px;
