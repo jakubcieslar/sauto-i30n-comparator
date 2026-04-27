@@ -1,6 +1,8 @@
 import { Controller } from '@hotwired/stimulus';
-import Chart from 'chart.js/auto';
+import { Chart, registerables } from 'chart.js';
 import 'chartjs-adapter-date-fns';
+
+Chart.register(...registerables);
 
 export default class extends Controller {
     static values = {

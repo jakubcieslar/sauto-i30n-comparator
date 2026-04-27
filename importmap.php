@@ -26,13 +26,10 @@ return [
         'version' => '7.3.0',
     ],
     'chart.js' => [
-        'version' => '4.0.1',
+        'version' => '4.5.1',
     ],
     '@kurkle/color' => [
         'version' => '0.3.4',
-    ],
-    'chart.js/auto' => [
-        'version' => '4.5.1',
     ],
     'chartjs-adapter-date-fns' => [
         'version' => '3.0.0',
